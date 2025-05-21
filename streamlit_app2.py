@@ -124,7 +124,7 @@ with col2:
   st.metric("📦 Promedio de Productos Vendidos", f"{avg_quantity_period:,.2f}")
   st.metric("💰 Promedio Ingreso por Ventas", f"${avg_sales_period:,.2f}")
   st.metric("💸 Promedio Costo Bienes Vendidos", f"${avg_cogs_period:,.2f}")
-  st.metric("💸 Promedio Impuesto 5%", f"${avg_tax_period:,.2f}")  
+  st.metric("💸 Promedio Impuesto 5%", f"${avg_tax_period:,.2f}")
   st.metric("💰 Promedio Margen Bruto", f"${avg_gross_income_period:,.2f}")
 
 with col3:
@@ -151,24 +151,75 @@ with col1:
     st.pyplot(fig)
 
 # Ingresos y Cantidad por Línea de Producto
+
 with col2:
     st.subheader(f"📊 {column_names['Total']} y Cantidad por Línea de Producto - Sucursal {selected_branch}")
-    # Agrupar datos por PL y sumar total y cantidad
-    df_grouped = df_filtered.groupby("Product line").agg({"Total": "sum", "Quantity": "sum"}).reset_index()
-    fig, ax1 = plt.subplots(figsize=(6, 3))
-    # barra para ingresos totales
+
+    # Agrupar datos por línea de producto
+    df_grouped = df_filtered.groupby("Product line").agg({
+        "Total": "sum",
+        "Quantity": "sum",
+        "gross income": "sum",
+        "cogs": "sum",
+        "Rating": "mean"
+    }).reset_index()
+
+    fig, ax1 = plt.subplots(figsize=(9, 5))
+
+    # Barras para ingresos totales
     sns.barplot(x="Product line", y="Total", data=df_grouped, ax=ax1, palette="pastel")
     ax1.set_xlabel("Línea de Producto")
-    ax1.set_ylabel(column_names["Total"], color="blue")
+    ax1.set_ylabel("Pesos ($): Total / Gross Income / COGS", color="blue")
     ax1.tick_params(axis="y", labelcolor="blue")
-    # agregar cantidad en eje 2
+
+    # Líneas
+    sns.lineplot(x="Product line", y="Total", data=df_grouped, ax=ax1, marker="o", color="blue", linestyle="--")
+    sns.lineplot(x="Product line", y="gross income", data=df_grouped, ax=ax1, marker="s", color="red")
+    sns.lineplot(x="Product line", y="cogs", data=df_grouped, ax=ax1, marker="D", color="orange")
+
+    # Etiquetas internas para leyendas de eje izquierdo
+    ax1.text(0.02, 0.95, "Total", transform=ax1.transAxes, color="blue", fontsize=9, fontweight="bold")
+    ax1.text(0.02, 0.1, "Gross Income", transform=ax1.transAxes, color="red", fontsize=9, fontweight="bold")
+    ax1.text(0.02, 0.85, "COGS", transform=ax1.transAxes, color="orange", fontsize=9, fontweight="bold")
+
+    # Etiquetas sobre Gross Income
+    max_gross_income = df_grouped["gross income"].max()
+    for i, row in df_grouped.iterrows():
+        is_max = row["gross income"] == max_gross_income
+        #label = f"${row['gross income']:.0f}" + ("\n ★ Máx" if is_max else "")
+        label = ("Max ★\n" if is_max else "") + f"${row['gross income']:.0f}"
+        ax1.text(
+            x=i,
+            y=row["gross income"] + (800 if is_max else 700),
+            s=label,
+            ha="center",
+            color="red",
+            fontsize=11 if is_max else 9,
+            fontweight="bold" if is_max else "normal"
+        )
+
+    # Segundo eje para cantidad
     ax2 = ax1.twinx()
-    sns.lineplot(x="Product line", y="Quantity", data=df_grouped, ax=ax2, marker="o", color="green")
+    sns.lineplot(x="Product line", y="Quantity", data=df_grouped, ax=ax2, marker="^", color="green")
+
+
+
     ax2.set_ylabel("Cantidad", color="green")
     ax2.tick_params(axis="y", labelcolor="green")
+    ax2.text(0.02, 0.55, "Cantidad", transform=ax2.transAxes, color="green", fontsize=9, fontweight="bold")
+
+
+
+
+    # Formato final
     ax1.set_xticklabels(ax1.get_xticklabels(), rotation=45, ha="right")
-    ax1.set_title(f"Ingresos y Cantidad por Línea de Producto - {selected_branch}")
+    ax1.set_title(f"Ingresos, Gross Income, COGS y Cantidad por Línea de Producto - {selected_branch}")
+
     st.pyplot(fig)
+
+
+
+
 
 # columna segunda
 col3, col4 = st.columns(2)
@@ -237,3 +288,6 @@ with col6:
     ax.grid(axis='y', linestyle='--', alpha=0.7)
 
     st.pyplot(fig)
+
+
+
