@@ -1,29 +1,44 @@
 import streamlit as st
 import pandas as pd
 import seaborn as sns
-import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 
-# diccionario columnas
+# Diccionarios
 column_names = {
     "Total": "Ingresos Totales",
     "Date": "Tiempo",
     "Member": "Miembro",
     "gross income": "Ingreso Bruto",
-    "cogs": "Bienes Vendidos",
+    "cogs": "Costo Bienes Vendidos",
     "Payment": "Método de Pago",
-    "Rating": "Calificaciones"
+    "Rating": "Calificaciones",
+    "Product line": "Línea de Producto"
 }
 
-# Diccionario meses (IDEA PARA SOLUCIONAR EL TEMA DE LOS MESES REVISAR)
-months_translation = {
-    "Jan": "Enero", "Feb": "Febrero", "Mar": "Marzo"
+product_translation = {
+    "Electronic accessories": "Accesorios Electrónicos",
+    "Fashion accessories": "Accesorios de Moda",
+    "Food and beverages": "Alimentos y Bebidas",
+    "Health and beauty": "Salud y Belleza",
+    "Home and lifestyle": "Hogar y Estilo de Vida",
+    "Sports and travel": "Deportes y Viajes"
 }
 
-# cache
+payment_translation = {
+    "Cash": "Efectivo",
+    "Credit card": "Tarjeta de Crédito",
+    "Ewallet": "Billetera Electrónica"
+}
+
+customer_type_translation = {
+    "Member": "Miembro",
+    "Normal": "Normal"
+}
+
+# Carga de datos
 @st.cache_data
 def load_data():
     df = pd.read_csv("data.csv")
@@ -32,11 +47,16 @@ def load_data():
 
 df = load_data()
 
-# rango de las fechas para limitar
+# Aplicar traducción
+df["Product line"] = df["Product line"].replace(product_translation)
+df["Payment"] = df["Payment"].replace(payment_translation)
+df["Customer type"] = df["Customer type"].replace(customer_type_translation)
+
+# Definir rango de fechas disponibles
 min_date = df["Date"].min()
 max_date = df["Date"].max()
 
-# Barra lateral
+# Barra lateral de filtros
 st.sidebar.header("Filtros")
 branches = ["Todas"] + sorted(df["Branch"].unique().tolist())
 selected_branch = st.sidebar.selectbox("Seleccionar sucursal", branches)
@@ -53,10 +73,10 @@ start_date, end_date = st.sidebar.date_input(
     max_value=max_date
 )
 
-# titulo del dash (dejar aqui y no mover ya que se necesita selected branch definido antes)
+# Título del Dashboard
 st.title(f"📊 Dashboard de Ventas - {'Todas las Sucursales' if selected_branch == 'Todas' else f'Sucursal {selected_branch}'}")
 
-# filtros
+# Filtrar
 if selected_branch == "Todas":
     df_filtered = df[
         (df["Product line"].isin(selected_product_lines)) &
@@ -69,13 +89,11 @@ else:
         (df["Date"].between(pd.Timestamp(start_date), pd.Timestamp(end_date)))
     ]
 
-# condicionante en caso de que este vacio
 if df_filtered.empty:
-    st.warning(f" No hay datos seleccionado como filtros para la sucursal {selected_branch}. Por favor, seleccione filtros para continuar.")
+    st.warning(f" No hay datos seleccionados para la sucursal {selected_branch}. Por favor, ajuste los filtros para continuar.")
     st.stop()
 
-# Metricas principales por branch
-
+# ------- MÉTRICAS PRINCIPALES ------
 st.header("Metricas Principales")
 total_sales = df_filtered["Total"].sum()
 total_products = df_filtered["Quantity"].sum()
@@ -114,17 +132,14 @@ with col3:
   st.metric("⭐ Promedio Calificaciones", f"{avg_rating_period:.2f}/10")
   st.metric("💰 Total Margen Bruto Periodo", f"${total_margen:,.2f}")
 
-
+# --- GRÁFICOS FILTRADOS -----------
 st.header("Gráficos Filtrados")
-# Columnas primera
 col1, col2 = st.columns(2)
 
-# ventas por mes
+# Ventas por fecha
 with col1:
     st.subheader("📈 Evolución de las Ventas Totales por Fecha")
-    # Agrupar por fecha y sumar las ventas totales del DataFrame filtrado
     ventas_diarias = df_filtered.groupby("Date")["Total"].sum().reset_index()
-    # Crear el gráfico de línea con tamaño 12x6
     fig, ax = plt.subplots(figsize=(6, 3))
     ax.plot(ventas_diarias["Date"], ventas_diarias["Total"], marker="o", color="teal")
     ax.set_title("Evolución de las Ventas Totales por Fecha")
@@ -170,17 +185,16 @@ with col3:
 # metodo de pago
 with col4:
     st.subheader(f"🏦 {column_names['Payment']} Más Utilizados - Sucursal {selected_branch}")
-    # agrupar datos por metodo de pago para renombrar
     df_payment = df_filtered.groupby("Payment", as_index=False).agg(
         Monto_Total=("Total", "sum"),
         Frecuencia=("Total", "count")
     )
     fig, ax1 = plt.subplots(figsize=(6, 3))
-    # barras para la frecuencia de metodo de pago
+
     sns.barplot(x="Payment", y="Frecuencia", data=df_payment, ax=ax1, color="lightblue")
     ax1.set_ylabel("Frecuencia", color="blue")
     ax1.tick_params(axis="y", labelcolor="blue")
-    # Línea para el monto total de ventas
+
     ax2 = ax1.twinx()
     sns.lineplot(x="Payment", y="Monto_Total", data=df_payment, ax=ax2, marker="o", color="red")
     ax2.set_ylabel("Ingreso ($)", color="red")
@@ -201,7 +215,6 @@ with col5:
     ax.set_ylabel(column_names["gross income"])
     st.pyplot(fig)
 
-# 4. Comparación del Gasto por Tipo de Cliente
 with col6:
     # Distribución del gasto total por tipo de cliente
     st.subheader("🎻 Distribución del Gasto Total por Tipo de Cliente")
