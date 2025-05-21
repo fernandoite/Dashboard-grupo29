@@ -114,17 +114,17 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
   st.subheader("📊 Valores totales en el Período Seleccionado")
+  st.metric("💰 Total Productos", f"{total_products:,.2f}")
   st.metric("📦 Total Ventas", f"${total_sales:,.2f}")
-  st.metric("💰 Total Ingreso por Ventas", f"{total_products:,}")
   st.metric("💸 Total Costo Bienes Vendidos", f"${total_gasto:,.2f}")
-  st.metric("💸 Total Impuesto Pagado'", f"${total_tax:,.2f}")
+  st.metric("💸 Total Impuesto Pagado", f"${total_tax:,.2f}")
 
 with col2:
   st.subheader("📊 Promedio Diario en el Período Seleccionado")
   st.metric("📦 Promedio de Productos Vendidos", f"{avg_quantity_period:,.2f}")
-  st.metric("💸 Promedio Impuesto 5%", f"${avg_tax_period:,.2f}")  
-  st.metric("💸 Promedio Costo Bienes Vendidos", f"${avg_cogs_period:,.2f}")
   st.metric("💰 Promedio Ingreso por Ventas", f"${avg_sales_period:,.2f}")
+  st.metric("💸 Promedio Costo Bienes Vendidos", f"${avg_cogs_period:,.2f}")
+  st.metric("💸 Promedio Impuesto 5%", f"${avg_tax_period:,.2f}")  
   st.metric("💰 Promedio Margen Bruto", f"${avg_gross_income_period:,.2f}")
 
 with col3:
